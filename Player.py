@@ -1,5 +1,8 @@
 import random
 
+from Move import Move
+from Hint import Hint
+
 
 class Player(object):
     def __init__(self, name):
@@ -10,8 +13,8 @@ class Player(object):
     def give(self, card):
         self.cards.append(card)
 
-    def play(self, index):
-        return self.cards.pop(index)
-
-    def decide(self):
-        return random.randint(0, len(self.cards) - 1)
+    def play(self, game_view):
+        index = random.randint(0, len(self.cards) - 1)
+        card = self.cards.pop(index)
+        move = Move(card=card)
+        return move

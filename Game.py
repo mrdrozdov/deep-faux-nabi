@@ -1,6 +1,7 @@
 from Fireworks import State as FWState
 from Fireworks import Fireworks
 from Deck import Deck
+from GameView import GameView
 from Player import Player
 
 
@@ -85,23 +86,33 @@ class Game(object):
         self.turns += 1
 
     @staticmethod
-    def build_message(player, card, fw_state, game_state):
-        return 'Player={} Card=[color={}, value={}] FWState={} GameState={}'.format(
-            player.name, card.color, card.value, fw_state, game_state)
+    def build_message(player, move, fw_state, game_state):
+        if move.has_card():
+            move_message = 'Card=[color={}, value={}]'.format(
+                move.card.color, move.card.value)
+        else:
+            move_message = 'Hint'
+        return 'Player={} {} FWState={} GameState={}'.format(
+            player.name, move_message, fw_state, game_state)
 
     def play_turn(self):
         player = self.players[self.turn]
-        card = player.play(player.decide())
-        fw_state = self.fireworks.update(card)
-        game_state = self.consume_fw_state(fw_state)
+        game_view = GameView.build(self, self.turn)
+        move = player.play(game_view)
+        if move.has_card():
+            card = move.card
+            fw_state = self.fireworks.update(card)
+            game_state = self.consume_fw_state(fw_state)
 
-        if game_state is State.CONTINUE:
-            game_state = self.draw_card(player)
+            if game_state is State.CONTINUE:
+                game_state = self.draw_card(player)
+        else:
+            game_state = State.CONTINUE
 
         if game_state is State.CONTINUE:
             self.increment_turn()
 
-        self.message = Game.build_message(player, card, fw_state, game_state)
+        self.message = Game.build_message(player, move, fw_state, game_state)
         self.game_state = game_state
 
         return self.game_state
