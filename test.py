@@ -93,6 +93,12 @@ class TestGame(unittest.TestCase):
         game_state = game.play_turn()
         self.assertEqual(game_state, GameState.GAMEOVER)
 
+    def test_play_til_end(self):
+        game = Game(self.config).reset()
+        while game.play_turn() == GameState.CONTINUE:
+            pass
+        self.assertNotEqual(game.game_state, GameState.CONTINUE)
+
 
 class TestDeck(unittest.TestCase):
     def setUp(self):

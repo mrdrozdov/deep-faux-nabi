@@ -96,5 +96,7 @@ class Game(object):
         if game_state is State.CONTINUE:
             self.increment_turn()
 
-        return game_state
+        self.game_state = game_state
+
+        return self.game_state
 
