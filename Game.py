@@ -84,6 +84,11 @@ class Game(object):
         self.turn = (self.turn + 1) % len(self.players)
         self.turns += 1
 
+    @staticmethod
+    def build_message(player, card, fw_state, game_state):
+        return 'Player={} Card=[color={}, value={}] FWState={} GameState={}'.format(
+            player.name, card.color, card.value, fw_state, game_state)
+
     def play_turn(self):
         player = self.players[self.turn]
         card = player.play(player.decide())
@@ -96,6 +101,7 @@ class Game(object):
         if game_state is State.CONTINUE:
             self.increment_turn()
 
+        self.message = Game.build_message(player, card, fw_state, game_state)
         self.game_state = game_state
 
         return self.game_state
