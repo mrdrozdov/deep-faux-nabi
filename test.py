@@ -1,10 +1,12 @@
 import unittest
+import mock
 import random
 
 from Card import Card
 from Deck import Deck
 from Fireworks import State as FWState
 from Fireworks import Fireworks
+from Game import State as GameState
 from Game import Game
 from GameConfig import GameConfig
 
@@ -31,15 +33,65 @@ class TestGame(unittest.TestCase):
 
     def test_increment_turn(self):
         game = Game(self.config).reset()
-        game.play_turn()
+        game_state = game.play_turn()
         self.assertEqual(game.turn, 1)
         self.assertEqual(game.turns, 1)
+        self.assertEqual(game_state, GameState.CONTINUE)
 
     def test_increment_turn_twice(self):
         game = Game(self.config).reset()
-        game.play_turn().play_turn()
+        game.play_turn()
+        game_state = game.play_turn()
         self.assertEqual(game.turn, 0)
         self.assertEqual(game.turns, 2)
+        self.assertEqual(game_state, GameState.CONTINUE)
+
+    def test_fw_state_invalid(self):
+        game = Game(self.config).reset()
+        self.assertEqual(game.lives, 3)
+        game.fireworks.update = mock.MagicMock(return_value=FWState.INVALID)
+        game_state = game.play_turn()
+        self.assertEqual(game.lives, 2)
+        self.assertEqual(game_state, GameState.CONTINUE)
+
+    def test_fw_state_valid(self):
+        game = Game(self.config).reset()
+        self.assertEqual(game.lives, 3)
+        game.fireworks.update = mock.MagicMock(return_value=FWState.VALID)
+        game_state = game.play_turn()
+        self.assertEqual(game.lives, 3)
+        self.assertEqual(game_state, GameState.CONTINUE)
+
+    def test_fw_state_most(self):
+        game = Game(self.config).reset()
+        game.hints -= 1
+        self.assertEqual(game.hints, 7)
+        game.fireworks.update = mock.MagicMock(return_value=FWState.MOST)
+        game_state = game.play_turn()
+        self.assertEqual(game.hints, 8)
+        self.assertEqual(game_state, GameState.CONTINUE)
+
+    def test_fw_state_win(self):
+        game = Game(self.config).reset()
+        game.fireworks.update = mock.MagicMock(return_value=FWState.WIN)
+        game_state = game.play_turn()
+        self.assertEqual(game_state, GameState.WIN)
+
+    def test_gameover_nolives(self):
+        game = Game(self.config).reset()
+        game.lives = 0
+        self.assertEqual(game.lives, 0)
+        game.fireworks.update = mock.MagicMock(return_value=FWState.INVALID)
+        game_state = game.play_turn()
+        self.assertEqual(game.lives, -1)
+        self.assertEqual(game_state, GameState.GAMEOVER)
+
+    def test_gameover_nocards(self):
+        game = Game(self.config).reset()
+        game.turns_without_drawing = 1
+        game.deck.cards = []
+        game_state = game.play_turn()
+        self.assertEqual(game_state, GameState.GAMEOVER)
 
 
 class TestDeck(unittest.TestCase):
