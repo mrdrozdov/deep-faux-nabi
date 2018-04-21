@@ -27,6 +27,8 @@ class Fireworks(object):
         self.state = state
         self.complete = 0
 
+        return self
+
     def update(self, card):
         success = self.state[card.color] == card.value - 1
 

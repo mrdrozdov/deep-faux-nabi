@@ -25,6 +25,8 @@ class Deck(object):
         self.cards = cards
         self.discarded = []
 
+        return self
+
     def draw(self):
         return self.cards.pop()
 
