@@ -3,7 +3,7 @@ import random
 
 from Card import Card
 from Deck import Deck
-from Fireworks import fwINVALID, fwVALID, fwMOST, fwWIN
+from Fireworks import State as FWState
 from Fireworks import Fireworks
 from GameConfig import GameConfig
 
@@ -76,14 +76,14 @@ class TestFireworks(unittest.TestCase):
         fw.reset()
         card = Card(color=0, value=2)
         response = fw.update(card)
-        self.assertEqual(response, fwINVALID)
+        self.assertEqual(response, FWState.INVALID)
 
     def test_update_valid(self):
         fw = Fireworks(self.config)
         fw.reset()
         card = Card(color=0, value=1)
         response = fw.update(card)
-        self.assertEqual(response, fwVALID)
+        self.assertEqual(response, FWState.VALID)
 
     def test_update_most(self):
         fw = Fireworks(self.config)
@@ -91,7 +91,7 @@ class TestFireworks(unittest.TestCase):
         fw.state[0] = len(self.config.n_numbers) - 1
         card = Card(color=0, value=len(self.config.n_numbers))
         response = fw.update(card)
-        self.assertEqual(response, fwMOST)
+        self.assertEqual(response, FWState.MOST)
 
     def test_update_win(self):
         fw = Fireworks(self.config)
@@ -101,7 +101,7 @@ class TestFireworks(unittest.TestCase):
         fw.complete = self.config.n_colors - 1
         card = Card(color=0, value=len(self.config.n_numbers))
         response = fw.update(card)
-        self.assertEqual(response, fwWIN)
+        self.assertEqual(response, FWState.WIN)
 
 
 if __name__ == '__main__':

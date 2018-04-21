@@ -1,14 +1,15 @@
-fwINVALID = 0
-fwVALID = 1
-fwMOST = 2
-fwWIN = 3
+class State:
+    INVALID = 0
+    VALID = 1
+    MOST = 2
+    WIN = 3
 
 
-fwMESSAGES = {
-    0: 'Player played an invalid card and it was discarded.',
-    1: 'Player played a valid card.',
-    2: 'Player played a valid card and it completed a stack.',
-    3: 'Player played the winning card!'
+MESSAGES = {
+    State.INVALID: 'Player played an invalid card and it was discarded.',
+    State.VALID: 'Player played a valid card.',
+    State.MOST: 'Player played a valid card and it completed a stack.',
+    State.WIN: 'Player played the winning card!'
 }
 
 
@@ -32,14 +33,14 @@ class Fireworks(object):
         if success:
             self.state[card.color] = card.value
         else:
-            return fwINVALID
+            return State.INVALID
 
         if self.state[card.color] == len(self.config.n_numbers):
             self.complete += 1
 
             if self.complete == self.config.n_colors:
-                return fwWIN
+                return State.WIN
             else:
-                return fwMOST
+                return State.MOST
 
-        return fwVALID
+        return State.VALID
