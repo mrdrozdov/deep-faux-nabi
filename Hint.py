@@ -1,6 +1,6 @@
 class Hint(object):
-    def __init__(self, player, color=None, value=None):
-        self.player = player
+    def __init__(self, player_index, color=None, value=None):
+        self.player_index = player_index
         self.color = color
         self.value = value
 

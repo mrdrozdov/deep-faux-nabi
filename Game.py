@@ -37,7 +37,7 @@ class Game(object):
         players = []
 
         for i in range(n_players):
-            players.append(Player(player_names[i]))
+            players.append(Player(player_names[i], i))
 
         for _ in range(n_cards_per_hand):
             for p in players:
@@ -69,6 +69,19 @@ class Game(object):
             raise ValueError("Does not support Fireworks.State == {}".format(fw_state))
         return game_state
 
+    def consume_hint(self, hint):
+        player_index = hint.player_index
+        cards = self.players[player_index].cards
+        if hint.has_color():
+            for c in cards:
+                if c.color == hint.color:
+                    c.color_revealed = True
+        else:
+            for c in cards:
+                if c.value == hint.value:
+                    c.value_revealed = True
+        self.hints -= 1
+
     def draw_card(self, player):
         if len(self.deck.cards) > 0:
             player.give(self.deck.draw())
@@ -91,14 +104,19 @@ class Game(object):
             move_message = 'Card=[color={}, value={}]'.format(
                 move.card.color, move.card.value)
         else:
-            move_message = 'Hint'
+            move_message = 'Hint=[player={}, color={}, value={}]'.format(
+                move.hint.player_index, move.hint.color, move.hint.value)
         return 'Player={} {} FWState={} GameState={}'.format(
             player.name, move_message, fw_state, game_state)
 
+    def get_view_for_player(self, player_index):
+        return GameView.build(self, player_index)
+
     def play_turn(self):
         player = self.players[self.turn]
-        game_view = GameView.build(self, self.turn)
+        game_view = self.get_view_for_player(self.turn)
         move = player.play(game_view)
+
         if move.has_card():
             card = move.card
             fw_state = self.fireworks.update(card)
@@ -107,6 +125,8 @@ class Game(object):
             if game_state is State.CONTINUE:
                 game_state = self.draw_card(player)
         else:
+            self.consume_hint(move.hint)
+            fw_state = None
             game_state = State.CONTINUE
 
         if game_state is State.CONTINUE:
