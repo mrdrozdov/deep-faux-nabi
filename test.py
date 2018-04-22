@@ -9,6 +9,7 @@ from Fireworks import Fireworks
 from Game import State as GameState
 from Game import Game
 from GameConfig import GameConfig
+from Move import Choice
 from Player import Player
 
 
@@ -38,7 +39,7 @@ class TestGame(unittest.TestCase):
 
     def test_increment_turn(self):
         game = Game(self.config).reset()
-        force_choice(game, Player.CHOOSE_CARD)
+        force_choice(game, Choice.CARD)
         game_state = game.play_turn()
         self.assertEqual(game.turn, 1)
         self.assertEqual(game.turns, 1)
@@ -46,9 +47,9 @@ class TestGame(unittest.TestCase):
 
     def test_increment_turn_twice(self):
         game = Game(self.config).reset()
-        force_choice(game, Player.CHOOSE_CARD)
+        force_choice(game, Choice.CARD)
         game.play_turn()
-        force_choice(game, Player.CHOOSE_CARD)
+        force_choice(game, Choice.CARD)
         game_state = game.play_turn()
         self.assertEqual(game.turn, 0)
         self.assertEqual(game.turns, 2)
@@ -58,7 +59,7 @@ class TestGame(unittest.TestCase):
         game = Game(self.config).reset()
         self.assertEqual(game.lives, 3)
         game.fireworks.update = mock.MagicMock(return_value=FWState.INVALID)
-        force_choice(game, Player.CHOOSE_CARD)
+        force_choice(game, Choice.CARD)
         game_state = game.play_turn()
         self.assertEqual(game.lives, 2)
         self.assertEqual(game_state, GameState.CONTINUE)
@@ -67,7 +68,7 @@ class TestGame(unittest.TestCase):
         game = Game(self.config).reset()
         self.assertEqual(game.lives, 3)
         game.fireworks.update = mock.MagicMock(return_value=FWState.VALID)
-        force_choice(game, Player.CHOOSE_CARD)
+        force_choice(game, Choice.CARD)
         game_state = game.play_turn()
         self.assertEqual(game.lives, 3)
         self.assertEqual(game_state, GameState.CONTINUE)
@@ -77,7 +78,7 @@ class TestGame(unittest.TestCase):
         game.hints -= 1
         self.assertEqual(game.hints, 7)
         game.fireworks.update = mock.MagicMock(return_value=FWState.MOST)
-        force_choice(game, Player.CHOOSE_CARD)
+        force_choice(game, Choice.CARD)
         game_state = game.play_turn()
         self.assertEqual(game.hints, 8)
         self.assertEqual(game_state, GameState.CONTINUE)
@@ -85,7 +86,7 @@ class TestGame(unittest.TestCase):
     def test_fw_state_win(self):
         game = Game(self.config).reset()
         game.fireworks.update = mock.MagicMock(return_value=FWState.WIN)
-        force_choice(game, Player.CHOOSE_CARD)
+        force_choice(game, Choice.CARD)
         game_state = game.play_turn()
         self.assertEqual(game_state, GameState.WIN)
 
@@ -94,7 +95,7 @@ class TestGame(unittest.TestCase):
         game.lives = 0
         self.assertEqual(game.lives, 0)
         game.fireworks.update = mock.MagicMock(return_value=FWState.INVALID)
-        force_choice(game, Player.CHOOSE_CARD)
+        force_choice(game, Choice.CARD)
         game_state = game.play_turn()
         self.assertEqual(game.lives, -1)
         self.assertEqual(game_state, GameState.GAMEOVER)
@@ -103,7 +104,7 @@ class TestGame(unittest.TestCase):
         game = Game(self.config).reset()
         game.turns_without_drawing = 1
         game.deck.cards = []
-        force_choice(game, Player.CHOOSE_CARD)
+        force_choice(game, Choice.CARD)
         game_state = game.play_turn()
         self.assertEqual(game_state, GameState.GAMEOVER)
 
@@ -111,7 +112,7 @@ class TestGame(unittest.TestCase):
         game = Game(self.config).reset()
         n_cards = len(game.deck.cards)
         n_hints = game.hints
-        force_choice(game, Player.CHOOSE_HINT)
+        force_choice(game, Choice.HINT)
         game_state = game.play_turn()
         self.assertEqual(len(game.deck.cards), n_cards)
         self.assertEqual(game.hints, n_hints-1)
@@ -121,10 +122,57 @@ class TestGame(unittest.TestCase):
         game = Game(self.config).reset()
         turn = game.turn
         n_initial_hints = len(game.get_view_for_player(turn).possible_hints())
-        force_choice(game, Player.CHOOSE_HINT)
+        force_choice(game, Choice.HINT)
         game.play_turn()
         n_remaining_hints = len(game.get_view_for_player(turn).possible_hints())
         self.assertTrue(n_remaining_hints < n_initial_hints)
+
+    def test_discard(self):
+        game = Game(self.config).reset()
+        game.hints -= 1
+        n_cards = len(game.deck.cards)
+        n_hints = game.hints
+        player = game.players[game.turn]
+        force_choice(game, Choice.DISCARD)
+        game_state = game.play_turn()
+        self.assertEqual(len(game.deck.cards), n_cards-1)
+        self.assertEqual(game.hints, n_hints+1)
+        self.assertEqual(game_state, GameState.CONTINUE)
+        self.assertEqual(len(player.cards), self.config.n_cards_per_hand)
+
+    def test_discard_max_hints(self):
+        game = Game(self.config).reset()
+        n_cards = len(game.deck.cards)
+        n_hints = game.hints
+        player = game.players[game.turn]
+        force_choice(game, Choice.DISCARD)
+        game_state = game.play_turn()
+        self.assertEqual(len(game.deck.cards), n_cards-1)
+        self.assertEqual(game.hints, n_hints)
+        self.assertEqual(game_state, GameState.CONTINUE)
+        self.assertEqual(len(player.cards), self.config.n_cards_per_hand)
+
+    def test_discard_empty_deck(self):
+        game = Game(self.config).reset()
+        game.deck.cards = []
+        n_hints = game.hints
+        player = game.players[game.turn]
+        force_choice(game, Choice.DISCARD)
+        game_state = game.play_turn()
+        self.assertEqual(len(game.deck.cards), 0)
+        self.assertEqual(game.hints, n_hints)
+        self.assertEqual(game_state, GameState.CONTINUE)
+        self.assertEqual(len(player.cards), self.config.n_cards_per_hand-1)
+
+    def test_discard_empty_deck_gameover(self):
+        game = Game(self.config).reset()
+        game.turns_without_drawing = 1
+        game.deck.cards = []
+        n_hints = game.hints
+        player = game.players[game.turn]
+        force_choice(game, Choice.DISCARD)
+        game_state = game.play_turn()
+        self.assertEqual(game_state, GameState.GAMEOVER)
 
     def test_play_til_end(self):
         game = Game(self.config).reset()

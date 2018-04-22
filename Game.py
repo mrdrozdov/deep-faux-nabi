@@ -2,6 +2,7 @@ from Fireworks import State as FWState
 from Fireworks import Fireworks
 from Deck import Deck
 from GameView import GameView
+from Move import Choice
 from Player import Player
 
 
@@ -99,15 +100,20 @@ class Game(object):
         self.turns += 1
 
     @staticmethod
-    def build_message(player, move, fw_state, game_state):
-        if move.has_card():
+    def build_message(player, move, fw_state, game_state, deck):
+        if move.choice == Choice.CARD:
             move_message = 'Card=[color={}, value={}]'.format(
                 move.card.color, move.card.value)
-        else:
+        elif move.choice == Choice.DISCARD:
+            move_message = 'Discard=[color={}, value={}]'.format(
+                move.card.color, move.card.value)
+        elif move.choice == Choice.HINT:
             move_message = 'Hint=[player={}, color={}, value={}]'.format(
                 move.hint.player_index, move.hint.color, move.hint.value)
-        return 'Player={} {} FWState={} GameState={}'.format(
-            player.name, move_message, fw_state, game_state)
+        else:
+            raise ValueError("Improper choice: {}".format(move.choice))
+        return 'Player={} {} FWState={} RemainingCards={} GameState={}'.format(
+            player.name, move_message, fw_state, len(deck.cards), game_state)
 
     def get_view_for_player(self, player_index):
         return GameView.build(self, player_index)
@@ -117,22 +123,28 @@ class Game(object):
         game_view = self.get_view_for_player(self.turn)
         move = player.play(game_view)
 
-        if move.has_card():
+        if move.choice == Choice.CARD:
             card = move.card
             fw_state = self.fireworks.update(card)
             game_state = self.consume_fw_state(fw_state)
 
             if game_state is State.CONTINUE:
                 game_state = self.draw_card(player)
-        else:
+        elif move.choice == Choice.HINT:
             self.consume_hint(move.hint)
             fw_state = None
             game_state = State.CONTINUE
+        elif move.choice == Choice.DISCARD:
+            self.hints = min(self.hints + 1, self.config.n_hints)
+            fw_state = None
+            game_state = self.draw_card(player)
+        else:
+            raise ValueError("Improper choice: {}".format(move.choice))
 
         if game_state is State.CONTINUE:
             self.increment_turn()
 
-        self.message = Game.build_message(player, move, fw_state, game_state)
+        self.message = Game.build_message(player, move, fw_state, game_state, self.deck)
         self.game_state = game_state
 
         return self.game_state

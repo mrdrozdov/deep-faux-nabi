@@ -1,5 +1,12 @@
+class Choice:
+    CARD = 0
+    DISCARD = 1
+    HINT = 2
+
+
 class Move(object):
-    def __init__(self, card=None, hint=None):
+    def __init__(self, choice, card=None, hint=None):
+        self.choice = choice
         self.card = card
         self.hint = hint
 
